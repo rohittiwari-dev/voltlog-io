@@ -59,4 +59,11 @@ describe("JSON Stream Transport", () => {
 
     expect(endSpy).toHaveBeenCalled();
   });
+
+  it("should resolve close immediately if stream has no end method", async () => {
+    const stream = { write: vi.fn() }; // No end()
+    const transport = jsonStreamTransport({ stream: stream as any });
+
+    await expect(transport.close!()).resolves.toBeUndefined();
+  });
 });

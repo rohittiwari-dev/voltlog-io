@@ -64,7 +64,7 @@ describe("Validating Redis Transport", () => {
     expect(args[3]).toBe(1000);
   });
 
-  it("should swallow errors", async () => {
+  it("should swallow errors from xadd", async () => {
     mockRedis.xadd.mockRejectedValue(new Error("Redis Down"));
     const transport = redisTransport({ client: mockRedis });
 
@@ -73,5 +73,10 @@ describe("Validating Redis Transport", () => {
 
     // Give time for promise rejection to be handled
     await new Promise((r) => setTimeout(r, 20));
+  });
+
+  it("should fulfill close contract (no-op)", async () => {
+    const transport = redisTransport({ client: mockRedis });
+    await expect(transport.close!()).resolves.toBeUndefined();
   });
 });

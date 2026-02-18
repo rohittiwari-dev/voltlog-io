@@ -52,4 +52,47 @@ describe("Batch Transport", () => {
 
     expect(handler.transform).toHaveBeenCalledTimes(1);
   });
+
+  it("should call inner flush and close", async () => {
+    const handler = {
+      name: "test",
+      transform: vi.fn(),
+      flush: vi.fn().mockResolvedValue(undefined),
+      close: vi.fn().mockResolvedValue(undefined),
+    };
+    const transport = batchTransport(handler);
+
+    transport.transform(mockEntry); // Buffered
+
+    await transport.flush!(); // Should flush buffer and call inner.flush
+    expect(handler.transform).toHaveBeenCalledTimes(1);
+    expect(handler.flush).toHaveBeenCalledTimes(1);
+
+    await transport.close!(); // Should flush and call inner.close
+    expect(handler.close).toHaveBeenCalledTimes(1);
+  });
+
+  it("should swallow errors from inner transformer", async () => {
+    const handler = {
+      name: "test",
+      level: "INFO" as const,
+      transform: vi.fn(),
+    };
+    const transport = batchTransport(handler, { batchSize: 1 });
+
+    // Sync error
+    handler.transform.mockImplementationOnce(() => {
+      throw new Error("Sync Fail");
+    });
+    transport.transform(mockEntry); // Should not throw
+
+    // Async error
+    handler.transform.mockResolvedValueOnce(
+      Promise.reject(new Error("Async Fail")),
+    );
+    transport.transform(mockEntry); // Should not throw
+
+    // Allow promise rejection to handle
+    await vi.advanceTimersByTimeAsync(10);
+  });
 });

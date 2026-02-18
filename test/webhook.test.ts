@@ -81,13 +81,39 @@ describe("Validating Webhook Transport", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
-  it("should swallow errors to avoid crashing", async () => {
-    fetchMock.mockRejectedValue(new Error("Network Error"));
+  it("should flush and close", async () => {
     const transport = webhookTransport({
       url: "https://api.example.com",
+      batchSize: 10,
     });
 
     transport.transform(mockEntry);
-    await vi.runAllTimersAsync();
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    await transport.flush!();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    // Close should also flush
+    transport.transform(mockEntry);
+    await transport.close!();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("should swallow final error after retries", async () => {
+    fetchMock.mockRejectedValue(new Error("Always Fail"));
+    const transport = webhookTransport({
+      url: "https://api.example.com",
+      retry: true,
+      maxRetries: 1, // 1 retry
+    });
+
+    transport.transform(mockEntry);
+
+    await vi.runAllTimersAsync(); // Initial
+    await vi.advanceTimersByTimeAsync(2000); // Retry
+
+    // Should have called twice (initial + 1 retry)
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    // Should not throw unhandled rejection
   });
 });

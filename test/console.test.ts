@@ -36,6 +36,19 @@ describe("Console Transport", () => {
     transport.transform({ ...mockEntry, level: 50, levelName: "ERROR" });
     expect(errorSpy).toHaveBeenCalled();
 
+    // FATAL (uses error)
+    transport.transform({ ...mockEntry, level: 60, levelName: "FATAL" });
+    expect(errorSpy).toHaveBeenCalledTimes(2);
+
+    // TRACE (fallthrough to log)
+    transport.transform({ ...mockEntry, level: 10, levelName: "TRACE" });
+    // info was called once before. log was not called.
+    // wait, I mocked console.log in implementation but in test I'm spying
+    // console.log is used for default.
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    transport.transform({ ...mockEntry, level: 10, levelName: "TRACE" });
+    expect(logSpy).toHaveBeenCalled();
+
     vi.restoreAllMocks();
   });
 });
