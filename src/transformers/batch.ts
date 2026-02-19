@@ -1,6 +1,7 @@
 /**
  * @module voltlog-io
- * @description Batch wrapper — wraps any transformer with buffering and periodic flushing.
+ * @description Batch transformer — wraps another transformer and buffers logs.
+ * @universal Works in all environments.
  *
  * @example
  * ```ts
@@ -82,7 +83,7 @@ export function batchTransport(
       await inner.flush?.();
     },
     async close(): Promise<void> {
-      await this.flush!();
+      await this.flush?.();
       await inner.close?.();
     },
   };

@@ -1,6 +1,7 @@
 /**
  * @module voltlog-io
- * @description Redaction middleware — auto-redacts sensitive fields from log meta and context.
+ * @description Redaction middleware — masks sensitive data in log entries.
+ * @universal Works in all environments.
  *
  * @example
  * ```ts
@@ -16,7 +17,7 @@
  * ```
  */
 
-import type { LogMiddleware, LogEntry } from "../core/types.js";
+import type { LogEntry, LogMiddleware } from "../core/types.js";
 
 const DEFAULT_REDACT_VALUE = "[REDACTED]";
 

@@ -3,7 +3,7 @@
  * @description Log level utilities — filtering, comparison, resolution.
  */
 
-import { LogLevel, LogLevelNameMap, type LogLevelName } from "./types.js";
+import { LogLevel, type LogLevelName, LogLevelNameMap } from "./types.js";
 
 /**
  * Resolve a level name string to its numeric value.

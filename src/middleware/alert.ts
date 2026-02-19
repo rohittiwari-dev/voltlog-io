@@ -1,7 +1,7 @@
 /**
  * @module voltlog-io
- * @description Alert middleware — evaluates configurable rules and fires callbacks.
- *
+ * @description Alert middleware — checks logs against rules and triggers alerts.
+ * @universal Works in all environments.
  * @example
  * ```ts
  * import { createLogger, consoleTransport, alertMiddleware } from 'voltlog-io';
@@ -33,7 +33,7 @@
  * ```
  */
 
-import type { LogMiddleware, LogEntry, AlertRule } from "../core/types.js";
+import type { AlertRule, LogEntry, LogMiddleware } from "../core/types.js";
 
 interface AlertState<TMeta> {
   entries: LogEntry<TMeta>[];
@@ -62,6 +62,7 @@ export function alertMiddleware<TMeta = Record<string, unknown>>(
     for (const rule of rules) {
       if (!rule.when(entry)) continue;
 
+      // biome-ignore lint/style/noNonNullAssertion: Initialized in constructor
       const state = states.get(rule.name)!;
       const windowMs = rule.windowMs ?? Infinity;
       const threshold = rule.threshold ?? 1;

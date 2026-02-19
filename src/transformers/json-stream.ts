@@ -1,6 +1,10 @@
 /**
  * @module voltlog-io
  * @description JSON stream transformer — writes newline-delimited JSON to any writable stream.
+ * @server-only
+ * This transport relies on Node.js-style `Writable` streams (e.g. `process.stdout`, `fs.createWriteStream`).
+ * Browser streams (WHATWG Streams API) use a different interface.
+ *
  * Useful for file logging, piping to external tools, etc.
  *
  * @example Write to file
@@ -45,7 +49,7 @@ export function jsonStreamTransport(
 ): Transformer {
   const stream = options.stream;
   const serialize =
-    options.serializer ?? ((entry: LogEntry) => JSON.stringify(entry) + "\n");
+    options.serializer ?? ((entry: LogEntry) => `${JSON.stringify(entry)}\n`);
 
   return {
     name: "json-stream",

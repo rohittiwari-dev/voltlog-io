@@ -34,7 +34,7 @@
  */
 
 import { createId } from "@paralleldrive/cuid2";
-import { resolveLevel, shouldLog, shouldIncludeStack } from "./levels.js";
+import { resolveLevel, shouldIncludeStack, shouldLog } from "./levels.js";
 import { composeMiddleware, fanOutToTransformers } from "./pipeline.js";
 import type {
   LogEntry,
@@ -199,9 +199,9 @@ class LoggerImpl<TMeta = Record<string, unknown>> implements Logger<TMeta> {
 
 // ─── Child Logger ────────────────────────────────────────────────
 
-class ChildLoggerImpl<
-  TMeta = Record<string, unknown>,
-> implements Logger<TMeta> {
+class ChildLoggerImpl<TMeta = Record<string, unknown>>
+  implements Logger<TMeta>
+{
   constructor(
     private _parent: LoggerImpl<TMeta>,
     private _context: Record<string, unknown>,

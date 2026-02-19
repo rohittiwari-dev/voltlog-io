@@ -4,156 +4,121 @@
  * OCPP-aware structured logger — lightweight, type-safe, framework-agnostic.
  *
  * Works as a standalone package or via `ocpp-ws-io/logger` re-export.
- *
- * @example Standalone
- * ```ts
- * import { createLogger, consoleTransport } from 'voltlog-io';
- *
- * const logger = createLogger({
- *   level: 'INFO',
- *   transports: [consoleTransport()],
- * });
- *
- * logger.info('Server started', { port: 9000 });
- * ```
- *
- * @example With ocpp-ws-io
- * ```ts
- * import { createLogger, prettyTransport } from 'ocpp-ws-io/logger';
- * ```
- *
- * @example OCPP exchange logging
- * ```ts
- * import { createLogger, prettyTransport, ocppMiddleware } from 'voltlog-io';
- * import type { OcppExchangeMeta } from 'voltlog-io';
- *
- * const logger = createLogger<OcppExchangeMeta>({
- *   transports: [prettyTransport()],
- *   middleware: [ocppMiddleware()],
- * });
- *
- * const cpLog = logger.child({ chargePointId: 'CP-101' });
- * cpLog.info('Message received', {
- *   action: 'BootNotification',
- *   messageType: 'CALL',
- *   direction: 'IN',
- * });
- * // ⚡ CP-101  →  BootNotification  [IN]  CALL
- * ```
- *
- * @example Alerting
- * ```ts
- * import { createLogger, consoleTransport, alertMiddleware } from 'voltlog-io';
- *
- * const logger = createLogger({
- *   transports: [consoleTransport()],
- *   middleware: [
- *     alertMiddleware([
- *       {
- *         name: 'error-spike',
- *         when: (e) => e.level >= 50,
- *         threshold: 10,
- *         windowMs: 60_000,
- *         onAlert: (entries) => sendEmail({ subject: `${entries.length} errors` }),
- *       },
- *     ]),
- *   ],
- * });
- * ```
- *
- * @example Webhook for AI/automation
- * ```ts
- * import { createLogger, webhookTransport } from 'voltlog-io';
- *
- * const logger = createLogger({
- *   transports: [
- *     webhookTransport({
- *       url: 'https://api.example.com/logs',
- *       batchSize: 50,
- *       flushIntervalMs: 5000,
- *     }),
- *   ],
- * });
- * ```
- *
- * @example Custom transformer (save to database)
- * ```ts
- * import { createLogger } from 'voltlog-io';
- * import type { Transformer } from 'voltlog-io';
- *
- * const dbTransformer: Transformer = {
- *   name: 'postgres',
- *   async transform(entry) {
- *     await db.insert('logs', entry);
- *   },
- * };
- *
- * const logger = createLogger({ transports: [dbTransformer] });
- * ```
  */
 
+// ─── Level Utilities ─────────────────────────────────────────────
+export { resolveLevel, shouldIncludeStack, shouldLog } from "./core/levels.js";
 // ─── Core ────────────────────────────────────────────────────────
 export { createLogger } from "./core/logger.js";
-
 // ─── Types ───────────────────────────────────────────────────────
 export {
-  LogLevel,
-  LogLevelNameMap,
-  LogLevelValueMap,
-  type LogLevelName,
-  type LogLevelValue,
+  type AlertRule,
   type LogEntry,
   type LogError,
+  type Logger,
+  type LoggerOptions,
+  LogLevel,
+  type LogLevelName,
+  LogLevelNameMap,
+  type LogLevelValue,
+  LogLevelValueMap,
+  type LogMiddleware,
   type OcppExchangeMeta,
   type Transformer,
-  type LogMiddleware,
-  type AlertRule,
-  type LoggerOptions,
-  type Logger,
 } from "./core/types.js";
-
-// ─── Level Utilities ─────────────────────────────────────────────
-export { resolveLevel, shouldLog, shouldIncludeStack } from "./core/levels.js";
-
+export {
+  type AiEnrichmentOptions,
+  aiEnrichmentMiddleware,
+  createOpenAiErrorAnalyzer,
+} from "./middleware/ai-enrichment.js";
+export { alertMiddleware } from "./middleware/alert.js";
+export {
+  type CorrelationIdOptions,
+  correlationIdMiddleware,
+} from "./middleware/correlation-id.js";
+export { createMiddleware } from "./middleware/create-middleware.js";
+export {
+  type DeduplicationOptions,
+  deduplicationMiddleware,
+} from "./middleware/deduplication.js";
+// Extended Middleware
+export { heapUsageMiddleware } from "./middleware/heap-usage.js";
+export { ipMiddleware } from "./middleware/ip.js";
+export {
+  type LevelOverrideOptions,
+  levelOverrideMiddleware,
+} from "./middleware/level-override.js";
+export {
+  type OcppMiddlewareOptions,
+  ocppMiddleware,
+} from "./middleware/ocpp.js";
 // ─── Middleware ──────────────────────────────────────────────────
 export {
-  redactionMiddleware,
   type RedactionOptions,
+  redactionMiddleware,
 } from "./middleware/redaction.js";
 export {
-  samplingMiddleware,
   type SamplingOptions,
+  samplingMiddleware,
 } from "./middleware/sampling.js";
 export {
-  ocppMiddleware,
-  type OcppMiddlewareOptions,
-} from "./middleware/ocpp.js";
-export { alertMiddleware } from "./middleware/alert.js";
-export { createMiddleware } from "./middleware/create-middleware.js";
-
-// ─── Transformers ────────────────────────────────────────────────
+  type UserAgentOptions,
+  userAgentMiddleware,
+} from "./middleware/user-agent.js";
 export {
-  consoleTransport,
-  type ConsoleTransportOptions,
-} from "./transformers/console.js";
-export {
-  prettyTransport,
-  type PrettyTransportOptions,
-} from "./transformers/pretty.js";
-export {
-  jsonStreamTransport,
-  type JsonStreamTransportOptions,
-} from "./transformers/json-stream.js";
-export {
-  webhookTransport,
-  type WebhookTransportOptions,
-} from "./transformers/webhook.js";
-export {
-  batchTransport,
   type BatchTransportOptions,
+  batchTransport,
 } from "./transformers/batch.js";
 export {
-  redisTransport,
-  type RedisTransportOptions,
+  type BrowserJsonStreamTransportOptions,
+  browserJsonStreamTransport,
+} from "./transformers/browser-json-stream.js";
+// ─── Transformers ────────────────────────────────────────────────
+export {
+  type ConsoleTransportOptions,
+  consoleTransport,
+} from "./transformers/console.js";
+// Extended Transformers
+export { createTransformer } from "./transformers/create-transformer.js";
+export {
+  type DatadogTransportOptions,
+  datadogTransport,
+} from "./transformers/datadog.js";
+export {
+  type DiscordTransportOptions,
+  discordTransport,
+} from "./transformers/discord.js";
+export {
+  type FileTransportOptions,
+  fileTransport,
+} from "./transformers/file.js";
+export {
+  type JsonStreamTransportOptions,
+  jsonStreamTransport,
+} from "./transformers/json-stream.js";
+export {
+  type LokiTransportOptions,
+  lokiTransport,
+} from "./transformers/loki.js";
+export {
+  type PrettyTransportOptions,
+  prettyTransport,
+} from "./transformers/pretty.js";
+export {
   type RedisClient,
+  type RedisTransportOptions,
+  redisTransport,
 } from "./transformers/redis.js";
+export {
+  type SentryInstance,
+  type SentryTransportOptions,
+  sentryTransport,
+} from "./transformers/sentry.js";
+export {
+  type SlackTransportOptions,
+  slackTransport,
+} from "./transformers/slack.js";
+export {
+  type WebhookTransportOptions,
+  webhookTransport,
+} from "./transformers/webhook.js";

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
+import type { LogEntry } from "../src/core/types.js";
 import { alertMiddleware } from "../src/middleware/alert.js";
-import { LogEntry } from "../src/core/types.js";
 
 describe("Alert Middleware", () => {
   const mockEntry: LogEntry = {
@@ -56,7 +56,7 @@ describe("Alert Middleware", () => {
     expect(onAlert).toHaveBeenCalledWith([errorEntry, errorEntry]);
   });
 
-  it("should reset window after triggering", () => {
+  it("should reset window after triggering", async () => {
     vi.useFakeTimers();
     const onAlert = vi.fn();
     const middleware = alertMiddleware([
@@ -75,7 +75,7 @@ describe("Alert Middleware", () => {
     middleware({ ...mockEntry, timestamp: Date.now() }, next);
 
     // Wait for window to expire
-    vi.advanceTimersByTime(1001);
+    await vi.advanceTimersByTimeAsync(1001);
 
     // 2nd hit (should be new window)
     middleware({ ...mockEntry, timestamp: Date.now() }, next);

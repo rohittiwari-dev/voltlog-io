@@ -16,6 +16,7 @@ export default defineConfig({
         "coverage/**",
         "tsup.config.ts",
         "vitest.config.ts",
+        "commitlint.config.js",
       ],
     },
   },

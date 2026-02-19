@@ -1,6 +1,7 @@
 /**
  * @module voltlog-io
  * @description Pretty transformer — human-readable colored output with OCPP exchange formatting.
+ * @universal Works in all environments (uses ANSI codes, supported by many browser consoles or stripped).
  *
  * @example Dev mode
  * ```ts
@@ -30,8 +31,8 @@
  */
 
 import {
-  LogLevel,
   type LogEntry,
+  LogLevel,
   type LogLevelName,
   type OcppExchangeMeta,
   type Transformer,
@@ -106,7 +107,10 @@ export function prettyTransport(
     const msgType = meta.messageType;
     const dir = meta.direction ?? "";
 
-    let line = `${icon} ${colorize(cpId, BOLD)}  ${arrow}  ${colorize(action, BOLD)}  [${dir}]  ${colorize(msgType, DIM)}`;
+    let line = `${icon} ${colorize(cpId, BOLD)}  ${arrow}  ${colorize(
+      action,
+      BOLD,
+    )}  [${dir}]  ${colorize(msgType, DIM)}`;
 
     // Second line for response info
     if (meta.status || meta.latencyMs !== undefined) {
@@ -125,7 +129,7 @@ export function prettyTransport(
     const levelColor = COLORS[entry.levelName] ?? "";
     const level = colorize(entry.levelName.padEnd(5), levelColor);
     const ts = showTimestamps
-      ? colorize(new Date(entry.timestamp).toISOString(), DIM) + "  "
+      ? `${colorize(new Date(entry.timestamp).toISOString(), DIM)}  `
       : "";
 
     let line = `${icon} ${ts}${level}  ${entry.message}`;
@@ -145,7 +149,10 @@ export function prettyTransport(
 
     // Add error
     if (entry.error) {
-      line += `\n  ${colorize(`${entry.error.name ?? "Error"}: ${entry.error.message}`, COLORS["ERROR"] ?? "")}`;
+      line += `\n  ${colorize(
+        `${entry.error.name ?? "Error"}: ${entry.error.message}`,
+        COLORS.ERROR ?? "",
+      )}`;
       if (entry.error.stack) {
         line += `\n${colorize(entry.error.stack, DIM)}`;
       }

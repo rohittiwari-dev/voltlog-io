@@ -1,7 +1,7 @@
 /**
  * @module voltlog-io
- * @description Console transformer — outputs structured JSON logs to console.
- * Works in Node.js, browsers, and all runtimes.
+ * @description Console transformer — writes to `console.log`, `console.error`, etc.
+ * @universal Works in all environments. Works in Node.js, browsers, and all runtimes.
  *
  * @example
  * ```ts
@@ -14,8 +14,8 @@
  */
 
 import {
-  LogLevel,
   type LogEntry,
+  LogLevel,
   type LogLevelName,
   type Transformer,
 } from "../core/types.js";

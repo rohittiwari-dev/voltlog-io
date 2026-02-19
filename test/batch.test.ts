@@ -1,6 +1,6 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { LogEntry } from "../src/core/types.js";
 import { batchTransport } from "../src/transformers/batch.js";
-import { LogEntry } from "../src/core/types.js";
 
 describe("Batch Transport", () => {
   const mockEntry: LogEntry = {
@@ -93,6 +93,6 @@ describe("Batch Transport", () => {
     transport.transform(mockEntry); // Should not throw
 
     // Allow promise rejection to handle
-    await vi.advanceTimersByTimeAsync(10);
+    vi.advanceTimersByTime(10);
   });
 });

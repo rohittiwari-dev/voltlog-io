@@ -1,6 +1,6 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { LogEntry } from "../src/core/types.js";
 import { webhookTransport } from "../src/transformers/webhook.js";
-import { LogEntry } from "../src/core/types.js";
 
 // Mock fetch
 const fetchMock = vi.fn();
@@ -33,7 +33,7 @@ describe("Validating Webhook Transport", () => {
     });
 
     transport.transform(mockEntry);
-    await vi.runAllTimersAsync();
+    await (vi as any).runAllTimersAsync();
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledWith(
@@ -54,7 +54,7 @@ describe("Validating Webhook Transport", () => {
     transport.transform(mockEntry); // 1
     transport.transform({ ...mockEntry, id: "2" }); // 2
 
-    await vi.runAllTimersAsync();
+    await (vi as any).runAllTimersAsync();
     expect(fetchMock).toHaveBeenCalledTimes(1);
 
     const body = JSON.parse(fetchMock.mock.calls[0][1].body);
@@ -73,10 +73,10 @@ describe("Validating Webhook Transport", () => {
     });
 
     transport.transform(mockEntry);
-    await vi.runAllTimersAsync(); // Initial call
+    await (vi as any).runAllTimersAsync(); // Initial call
 
     // Retry delay is exp backoff: 1000ms
-    await vi.advanceTimersByTimeAsync(2000);
+    await (vi as any).advanceTimersByTimeAsync(2000);
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
@@ -109,8 +109,8 @@ describe("Validating Webhook Transport", () => {
 
     transport.transform(mockEntry);
 
-    await vi.runAllTimersAsync(); // Initial
-    await vi.advanceTimersByTimeAsync(2000); // Retry
+    await (vi as any).runAllTimersAsync(); // Initial
+    await (vi as any).advanceTimersByTimeAsync(2000); // Retry
 
     // Should have called twice (initial + 1 retry)
     expect(fetchMock).toHaveBeenCalledTimes(2);

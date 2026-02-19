@@ -1,6 +1,10 @@
 /**
  * @module voltlog-io
  * @description Redis Streams transformer — publishes log entries to a Redis Stream.
+ * @server-only
+ * Designed for standard Redis clients (like `ioredis`) which use TCP sockets (unavailable in browsers).
+ * For HTTP-based Redis (e.g. Upstash), use a custom transformer or `webhookTransport`.
+ *
  * Users can then subscribe (XREAD/XREADGROUP) for real-time dashboards, monitoring, etc.
  *
  * Requires `ioredis` — user brings their own client instance (no hard dep).

@@ -1,6 +1,7 @@
 /**
  * @module voltlog-io
- * @description Webhook transformer — sends log entries to external HTTP endpoints.
+ * @description Webhook transformer — sends logs via HTTP POST.
+ * @universal Works in all environments (uses `fetch`).
  * Supports batching for performance.
  *
  * @example
@@ -84,13 +85,13 @@ export function webhookTransport(
 
       if (!response.ok && retry && attempt < maxRetries) {
         // Exponential backoff retry
-        const delay = Math.min(1000 * Math.pow(2, attempt), 30000);
+        const delay = Math.min(1000 * 2 ** attempt, 30000);
         await new Promise((r) => setTimeout(r, delay));
         return sendBatch(entries, attempt + 1);
       }
     } catch {
       if (retry && attempt < maxRetries) {
-        const delay = Math.min(1000 * Math.pow(2, attempt), 30000);
+        const delay = Math.min(1000 * 2 ** attempt, 30000);
         await new Promise((r) => setTimeout(r, delay));
         return sendBatch(entries, attempt + 1);
       }
@@ -138,7 +139,7 @@ export function webhookTransport(
       }
     },
     async close(): Promise<void> {
-      await this.flush!();
+      await this.flush?.();
     },
   };
 }

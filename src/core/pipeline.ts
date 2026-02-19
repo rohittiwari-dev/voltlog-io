@@ -22,6 +22,7 @@ export function composeMiddleware<TMeta = Record<string, unknown>>(
 
     const next = (e: LogEntry<TMeta>): void => {
       if (index < middleware.length) {
+        // biome-ignore lint/style/noNonNullAssertion: Guarded by length check
         const mw = middleware[index++]!;
         mw(e, next);
       } else {

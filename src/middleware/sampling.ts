@@ -1,7 +1,7 @@
 /**
  * @module voltlog-io
- * @description Sampling middleware — rate-limits logs per key to avoid flooding.
- *
+ * @description Sampling middleware — rate limits or probabilistically samples logs.
+ * @universal Works in all environments.
  * @example
  * ```ts
  * import { createLogger, consoleTransport, samplingMiddleware } from 'voltlog-io';
@@ -19,7 +19,7 @@
  * ```
  */
 
-import type { LogMiddleware, LogEntry } from "../core/types.js";
+import type { LogEntry, LogMiddleware } from "../core/types.js";
 
 export interface SamplingOptions<TMeta = Record<string, unknown>> {
   /**

@@ -1,6 +1,7 @@
 /**
  * @module voltlog-io
- * @description OCPP enrichment middleware — auto-enriches log entries with OCPP metadata.
+ * @description OCPP middleware — masks sensitive fields and calculates latency for OCPP messages.
+ * @universal Works in all environments.
  *
  * @example
  * ```ts
@@ -22,8 +23,8 @@
  */
 
 import type {
-  LogMiddleware,
   LogEntry,
+  LogMiddleware,
   OcppExchangeMeta,
 } from "../core/types.js";
 
