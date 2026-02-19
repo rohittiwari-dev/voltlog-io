@@ -110,5 +110,8 @@ export function lokiTransport(options: LokiTransportOptions): Transport {
       if (timer) clearTimeout(timer);
       await flush();
     },
+    async close() {
+      await this.flush?.();
+    },
   };
 }

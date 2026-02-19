@@ -1,6 +1,10 @@
 # voltlog-io
 
-## 1.1.0
+## 1.0.0
+
+### Patch Changes
+
+- updated name of transformer to transport and added coverage of total test cases to 95%^
 
 ### Minor Changes
 
