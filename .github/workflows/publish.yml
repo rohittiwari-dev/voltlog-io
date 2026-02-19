@@ -20,31 +20,29 @@ jobs:
 
       - name: Verify tag is on main branch
         run: |
-          # Fetch origin main to ensure we have the reference
-          git fetch origin main
           if ! git branch -r --contains ${{ github.sha }} | grep -q 'origin/main'; then
             echo "❌ Error: Tag was not created from the 'main' branch."
             exit 1
           fi
           echo "✅ Tag is on the 'main' branch."
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          bun-version: latest
+          node-version: "20"
           registry-url: "https://registry.npmjs.org"
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: npm ci
+
+      - name: Run lint
+        run: npm run lint
 
       - name: Run tests
-        run: bun run test
-
-      - name: Lint
-        run: bun run check
+        run: npm run test
 
       - name: Build
-        run: bun run build
+        run: npm run build
 
       - name: Determine npm dist-tag
         id: dist-tag
@@ -59,9 +57,14 @@ jobs:
           else
             echo "tag=latest" >> $GITHUB_OUTPUT
           fi
+          echo "Publishing $VERSION with tag: $(cat $GITHUB_OUTPUT | grep tag | cut -d= -f2)"
+
+      - name: Sync version from git tag to package.json
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          npm version "$VERSION" --no-git-tag-version --allow-same-version
 
       - name: Publish to npm
-        run: bun publish --access public --tag ${{ steps.dist-tag.outputs.tag }}
+        run: npm publish --provenance --access public --tag ${{ steps.dist-tag.outputs.tag }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

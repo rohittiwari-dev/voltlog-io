@@ -25,12 +25,12 @@
     "lint": "biome lint .",
     "format": "biome format --write .",
     "check": "biome check --write .",
-    "prepublishOnly": "npm run build",
+    "prepublishOnly": "bun run build",
     "prepare": "bun -e \"if (!process.env.CI) process.exit(1)\" || husky",
     "commitlint": "commitlint --edit",
     "changeset": "changeset",
     "version": "changeset version",
-    "release": "npm run build && changeset publish"
+    "release": "bun run build && changeset publish"
   },
   "engines": {
     "node": ">=18.0.0"
