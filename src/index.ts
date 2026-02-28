@@ -33,6 +33,11 @@ export {
   createOpenAiErrorAnalyzer,
 } from "./middleware/ai-enrichment.js";
 export { alertMiddleware } from "./middleware/alert.js";
+// ─── Async Context ─────────────────────────────────────────────
+export {
+  type AsyncContextResult,
+  asyncContextMiddleware,
+} from "./middleware/async-context.js";
 export {
   type CorrelationIdOptions,
   correlationIdMiddleware,
@@ -60,6 +65,11 @@ export {
   type OcppMiddlewareOptions,
   ocppMiddleware,
 } from "./middleware/ocpp.js";
+// ─── OpenTelemetry ─────────────────────────────────────────────
+export {
+  type OtelTraceMiddlewareOptions,
+  otelTraceMiddleware,
+} from "./middleware/otel-trace.js";
 // ─── Middleware ──────────────────────────────────────────────────
 export {
   type RedactionOptions,
@@ -102,6 +112,7 @@ export {
   jsonStreamTransport,
 } from "./transports/json-stream.js";
 export { type LokiTransportOptions, lokiTransport } from "./transports/loki.js";
+export { type OtelTransportOptions, otelTransport } from "./transports/otel.js";
 export {
   type PrettyTransportOptions,
   prettyTransport,
@@ -130,14 +141,3 @@ export {
   type WebhookTransportOptions,
   webhookTransport,
 } from "./transports/webhook.js";
-// ─── OpenTelemetry ─────────────────────────────────────────────
-export {
-  type OtelTraceMiddlewareOptions,
-  otelTraceMiddleware,
-} from "./middleware/otel-trace.js";
-export { type OtelTransportOptions, otelTransport } from "./transports/otel.js";
-// ─── Async Context ─────────────────────────────────────────────
-export {
-  type AsyncContextResult,
-  asyncContextMiddleware,
-} from "./middleware/async-context.js";
