@@ -4,7 +4,6 @@
 
 [![npm version](https://img.shields.io/npm/v/voltlog-io?color=blue)](https://www.npmjs.com/package/voltlog-io)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Build & Test](https://github.com/rohittiwari-dev/voltlog-io/actions/workflows/ci.yml/badge.svg)](https://github.com/rohittiwari-dev/voltlog-io/actions)
 [![Zero Dependencies](https://img.shields.io/badge/dependencies-0-brightgreen)](https://www.npmjs.com/package/voltlog-io)
 
 **VoltLog** is a modern, lightweight, and type-safe structured logger designed for high-throughput, real-time systems like IoT platforms, WebSocket servers (OCPP), and microservices.
@@ -14,26 +13,6 @@
 For detailed guides, API reference, and advanced usage:
 
 ### [👉 https://ocpp-ws-io.rohittiwari.me/docs/voltlog-io](https://ocpp-ws-io.rohittiwari.me/docs/voltlog-io)
-
----
-
-## ✨ Why VoltLog?
-
-| Feature                   | Pino         | Winston       | VoltLog       |
-| ------------------------- | ------------ | ------------- | ------------- |
-| Zero dependencies         | ❌ (11 deps) | ❌ (10+ deps) | ✅ **0 deps** |
-| Type-safe generics        | ❌           | ❌            | ✅            |
-| Middleware pipeline       | ❌           | ❌            | ✅            |
-| Built-in redaction        | Plugin       | ❌            | ✅            |
-| Sampling / rate-limit     | ❌           | ❌            | ✅            |
-| Alert rules               | ❌           | ❌            | ✅            |
-| Error cause chain         | ❌           | ❌            | ✅            |
-| Ring buffer               | ❌           | ❌            | ✅            |
-| OCPP-aware                | ❌           | ❌            | ✅            |
-| OpenTelemetry             | Plugin       | Plugin        | ✅ Built-in   |
-| File rotation (date+size) | Plugin       | Plugin        | ✅ Built-in   |
-| HTTP request logging      | Plugin       | Plugin        | ✅ Built-in   |
-| AsyncLocalStorage context | ❌           | ❌            | ✅ Built-in   |
 
 ## 📦 Installation
 
@@ -317,12 +296,6 @@ logger.info("free");
 logger.warn("logged");
 logger.error("logged");
 ```
-
-| Scenario                                  | VoltLog | Pino   |
-| ----------------------------------------- | ------- | ------ |
-| Filtered log (e.g. DEBUG when level=INFO) | ~0.02μs | ~3-5μs |
-| Simple INFO with 1 transport              | ~2-4μs  | ~3-5μs |
-| 3 middleware + 2 transports               | ~8-15μs | N/A    |
 
 ## 🛡️ Graceful Shutdown
 
