@@ -1,6 +1,6 @@
 {
   "name": "voltlog-io",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Structured logger for real-time infrastructure — lightweight, type-safe, OCPP-aware. Works standalone or with ocpp-ws-io.",
   "repository": {
     "type": "git",
@@ -60,7 +60,6 @@
   "files": [
     "dist"
   ],
-  "dependencies": {},
   "devDependencies": {
     "@biomejs/biome": "^2.4.4",
     "@changesets/cli": "^2.29.8",

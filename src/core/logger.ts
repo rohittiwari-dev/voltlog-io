@@ -42,8 +42,8 @@ import {
   type Logger,
   type LoggerOptions,
   type LogLevelName,
-  type LogMiddleware,
   LogLevelValueMap,
+  type LogMiddleware,
   type TimerResult,
   type Transport,
 } from "./types.js";

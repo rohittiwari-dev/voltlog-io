@@ -105,4 +105,113 @@ describe("Loki Transport", () => {
     await transport.close!();
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
+
+  it("should group entries by dynamic labels", async () => {
+    const transport = lokiTransport({
+      host: "http://loki:3100",
+      batchSize: 3,
+      labels: { app: "test" },
+      dynamicLabels: (entry) => ({ level: entry.levelName }),
+    });
+
+    transport.write({ ...mockEntry, levelName: "INFO" });
+    transport.write({ ...mockEntry, id: "b", levelName: "ERROR", level: 50 });
+    transport.write({ ...mockEntry, id: "c", levelName: "INFO" });
+
+    await vi.advanceTimersByTimeAsync(0);
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    // Should have 2 streams: one for INFO, one for ERROR
+    expect(body.streams.length).toBe(2);
+
+    const infoStream = body.streams.find((s: any) => s.stream.level === "INFO");
+    const errorStream = body.streams.find(
+      (s: any) => s.stream.level === "ERROR",
+    );
+    expect(infoStream.values).toHaveLength(2);
+    expect(errorStream.values).toHaveLength(1);
+  });
+
+  it("should include structured metadata when enabled", async () => {
+    const transport = lokiTransport({
+      host: "http://loki:3100",
+      batchSize: 1,
+      includeMetadata: true,
+    });
+
+    const entry: LogEntry = {
+      ...mockEntry,
+      correlationId: "corr-123",
+      context: { service: "csms" },
+      error: { message: "boom", name: "Error" },
+    };
+
+    transport.write(entry);
+    await vi.advanceTimersByTimeAsync(0);
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    const logLine = JSON.parse(body.streams[0].values[0][1]);
+    expect(logLine.correlationId).toBe("corr-123");
+    expect(logLine.context).toEqual({ service: "csms" });
+    expect(logLine.error.message).toBe("boom");
+  });
+
+  it("should exclude metadata when includeMetadata is false", async () => {
+    const transport = lokiTransport({
+      host: "http://loki:3100",
+      batchSize: 1,
+      includeMetadata: false,
+    });
+
+    const entry: LogEntry = {
+      ...mockEntry,
+      correlationId: "corr-123",
+      context: { service: "csms" },
+    };
+
+    transport.write(entry);
+    await vi.advanceTimersByTimeAsync(0);
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    const logLine = JSON.parse(body.streams[0].values[0][1]);
+    expect(logLine.correlationId).toBeUndefined();
+    expect(logLine.context).toBeUndefined();
+  });
+
+  it("should retry on server error", async () => {
+    fetchMock
+      .mockResolvedValueOnce({ ok: false, status: 500 })
+      .mockResolvedValueOnce({ ok: true });
+
+    const transport = lokiTransport({
+      host: "http://loki:3100",
+      batchSize: 1,
+      retry: true,
+      maxRetries: 3,
+    });
+
+    transport.write(mockEntry);
+
+    // Flush is async — advance timers to let retry backoff resolve
+    await vi.advanceTimersByTimeAsync(500);
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("should NOT retry on 4xx client errors", async () => {
+    fetchMock.mockResolvedValueOnce({ ok: false, status: 400 });
+
+    const transport = lokiTransport({
+      host: "http://loki:3100",
+      batchSize: 1,
+      retry: true,
+      maxRetries: 3,
+    });
+
+    transport.write(mockEntry);
+    await vi.advanceTimersByTimeAsync(500);
+
+    // Should not retry — 400 is a client error
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
 });

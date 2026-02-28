@@ -283,4 +283,196 @@ describe("Logger Core", () => {
       expect(closeFn).toHaveBeenCalled();
     });
   });
+
+  describe("setLevel / getLevel / isLevelEnabled", () => {
+    it("should change level at runtime via setLevel", () => {
+      const logger = createLogger({
+        level: "INFO",
+        transports: [testTransport],
+      });
+      logger.debug("should drop");
+      expect(entries).toHaveLength(0);
+
+      logger.setLevel("DEBUG");
+      logger.debug("should pass");
+      expect(entries).toHaveLength(1);
+    });
+
+    it("should return current level via getLevel", () => {
+      const logger = createLogger({
+        level: "WARN",
+        transports: [testTransport],
+      });
+      expect(logger.getLevel()).toBe("WARN");
+
+      logger.setLevel("TRACE");
+      expect(logger.getLevel()).toBe("TRACE");
+    });
+
+    it("should check if level is enabled", () => {
+      const logger = createLogger({
+        level: "WARN",
+        transports: [testTransport],
+      });
+      expect(logger.isLevelEnabled("DEBUG")).toBe(false);
+      expect(logger.isLevelEnabled("INFO")).toBe(false);
+      expect(logger.isLevelEnabled("WARN")).toBe(true);
+      expect(logger.isLevelEnabled("ERROR")).toBe(true);
+      expect(logger.isLevelEnabled("FATAL")).toBe(true);
+    });
+
+    it("child logger should delegate level control to parent", () => {
+      const logger = createLogger({
+        level: "WARN",
+        transports: [testTransport],
+      });
+      const child = logger.child({ cp: "CP-1" });
+      child.info("should drop");
+      expect(entries).toHaveLength(0);
+
+      child.setLevel("INFO");
+      child.info("should pass");
+      expect(entries).toHaveLength(1);
+      expect(logger.getLevel()).toBe("INFO"); // parent was changed
+    });
+  });
+
+  describe("startTimer", () => {
+    it("should log with durationMs", async () => {
+      const logger = createLogger({
+        transports: [testTransport],
+      });
+      const timer = logger.startTimer();
+
+      await new Promise((r) => setTimeout(r, 50));
+      timer.done("Operation complete", { extra: "data" } as any);
+
+      expect(entries).toHaveLength(1);
+      expect(entries[0]!.message).toBe("Operation complete");
+      const meta = entries[0]!.meta as Record<string, unknown>;
+      expect(meta.durationMs).toBeGreaterThanOrEqual(40); // ~50ms
+      expect(meta.extra).toBe("data");
+    });
+
+    it("should report elapsed without logging", async () => {
+      const logger = createLogger({ transports: [testTransport] });
+      const timer = logger.startTimer();
+
+      await new Promise((r) => setTimeout(r, 30));
+      const elapsed = timer.elapsed();
+
+      expect(elapsed).toBeGreaterThanOrEqual(20);
+      expect(entries).toHaveLength(0); // no log yet
+    });
+
+    it("should log at specified level", () => {
+      const logger = createLogger({
+        level: "TRACE",
+        transports: [testTransport],
+      });
+      const timer = logger.startTimer("WARN");
+      timer.done("warning timer");
+
+      expect(entries[0]!.levelName).toBe("WARN");
+    });
+  });
+
+  describe("removeMiddleware", () => {
+    it("should remove middleware by reference", () => {
+      const logger = createLogger({
+        transports: [testTransport],
+      });
+
+      const addTag = (entry: LogEntry, next: (e: LogEntry) => void) => {
+        (entry.meta as any).tagged = true;
+        next(entry);
+      };
+
+      logger.addMiddleware(addTag);
+      logger.info("with middleware");
+      expect((entries[0]!.meta as any).tagged).toBe(true);
+
+      logger.removeMiddleware(addTag);
+      logger.info("without middleware");
+      expect((entries[1]!.meta as any).tagged).toBeUndefined();
+    });
+  });
+
+  describe("error cause chain", () => {
+    it("should serialize error.cause recursively", () => {
+      const logger = createLogger({
+        transports: [testTransport],
+        includeStack: false,
+      });
+
+      const root = new Error("root cause");
+      const mid = new Error("middle", { cause: root });
+      const top = new Error("top error", { cause: mid });
+
+      logger.error("chain test", top);
+
+      expect(entries[0]!.error).toBeDefined();
+      expect(entries[0]!.error!.message).toBe("top error");
+      expect(entries[0]!.error!.cause).toBeDefined();
+      expect(entries[0]!.error!.cause!.message).toBe("middle");
+      expect(entries[0]!.error!.cause!.cause).toBeDefined();
+      expect(entries[0]!.error!.cause!.cause!.message).toBe("root cause");
+    });
+
+    it("should cap cause chain depth at 5", () => {
+      const logger = createLogger({
+        transports: [testTransport],
+        includeStack: false,
+      });
+
+      // Build a 7-deep chain
+      let err = new Error("level-0");
+      for (let i = 1; i <= 7; i++) {
+        err = new Error(`level-${i}`, { cause: err });
+      }
+
+      logger.error("deep chain", err);
+
+      // Walk the chain — should stop at depth 5
+      let current = entries[0]!.error;
+      let depth = 0;
+      while (current?.cause) {
+        current = current.cause;
+        depth++;
+      }
+      expect(depth).toBeLessThanOrEqual(5);
+    });
+  });
+
+  describe("idGenerator", () => {
+    it("should use custom idGenerator", () => {
+      let counter = 0;
+      const logger = createLogger({
+        transports: [testTransport],
+        idGenerator: () => `custom-${++counter}`,
+      });
+
+      logger.info("a");
+      logger.info("b");
+      expect(entries[0]!.id).toBe("custom-1");
+      expect(entries[1]!.id).toBe("custom-2");
+    });
+
+    it("should generate empty id when idGenerator is false", () => {
+      const logger = createLogger({
+        transports: [testTransport],
+        idGenerator: false,
+      });
+
+      logger.info("no id");
+      expect(entries[0]!.id).toBe("");
+    });
+
+    it("should generate UUID by default", () => {
+      const logger = createLogger({ transports: [testTransport] });
+      logger.info("test");
+      expect(entries[0]!.id).toBeDefined();
+      expect(entries[0]!.id.length).toBeGreaterThan(0);
+    });
+  });
 });

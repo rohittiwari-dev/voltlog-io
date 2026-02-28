@@ -130,3 +130,14 @@ export {
   type WebhookTransportOptions,
   webhookTransport,
 } from "./transports/webhook.js";
+// ─── OpenTelemetry ─────────────────────────────────────────────
+export {
+  type OtelTraceMiddlewareOptions,
+  otelTraceMiddleware,
+} from "./middleware/otel-trace.js";
+export { type OtelTransportOptions, otelTransport } from "./transports/otel.js";
+// ─── Async Context ─────────────────────────────────────────────
+export {
+  type AsyncContextResult,
+  asyncContextMiddleware,
+} from "./middleware/async-context.js";
