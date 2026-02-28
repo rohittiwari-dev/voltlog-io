@@ -43,6 +43,13 @@ export {
 } from "./middleware/deduplication.js";
 // Extended Middleware
 export { heapUsageMiddleware } from "./middleware/heap-usage.js";
+export {
+  createHttpLogger,
+  type HttpLoggerOptions,
+  type HttpRequestMapper,
+  type HttpResponseMapper,
+  nodeHttpMappers,
+} from "./middleware/http.js";
 export { ipMiddleware } from "./middleware/ip.js";
 export {
   type LevelOverrideOptions,

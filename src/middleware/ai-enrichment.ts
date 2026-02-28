@@ -133,7 +133,6 @@ export function createOpenAiErrorAnalyzer(
       );
 
       if (!response.ok) return null;
-      // biome-ignore lint/suspicious/noExplicitAny: Third-party API response, partial typing is sufficient
       const data = (await response.json()) as any;
       return data.choices?.[0]?.message?.content ?? null;
     } catch {

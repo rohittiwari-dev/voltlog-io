@@ -85,7 +85,6 @@ function formatSlackMessage(
 
   // Add correlation ID if present
   if (entry.correlationId) {
-    // biome-ignore lint/suspicious/noExplicitAny: Slack Block Kit types are complex to fully type here
     (blocks[1].elements as any[]).push({
       type: "mrkdwn",
       text: `*Trace:* \`${entry.correlationId}\``,

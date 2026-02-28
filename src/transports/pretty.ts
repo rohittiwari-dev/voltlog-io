@@ -45,6 +45,10 @@ export interface PrettyTransportOptions {
   timestamps?: boolean;
   /** Use colors in output (default: true) */
   colors?: boolean;
+  /** Hide meta object in output (default: false) */
+  hideMeta?: boolean;
+  /** Pretty-print meta object with indentation (default: false) */
+  prettyMeta?: boolean;
 }
 
 // ─── ANSI Color Codes ────────────────────────────────────────────
@@ -91,6 +95,8 @@ export function prettyTransport(
 ): Transport {
   const showTimestamps = options.timestamps ?? true;
   const useColors = options.colors ?? true;
+  const hideMeta = options.hideMeta ?? false;
+  const prettyMeta = options.prettyMeta ?? false;
 
   function colorize(text: string, color: string): string {
     return useColors ? `${color}${text}${RESET}` : text;
@@ -136,15 +142,38 @@ export function prettyTransport(
 
     // Add context
     if (entry.context && Object.keys(entry.context).length > 0) {
-      line += `  ${colorize(JSON.stringify(entry.context), DIM)}`;
+      const kvStr = Object.entries(entry.context)
+        .map(
+          ([k, v]) => `${k}:${typeof v === "string" ? v : JSON.stringify(v)}`,
+        )
+        .join(" ");
+      line += `  ${colorize(kvStr, DIM)}`;
     }
 
     // Add meta (only non-OCPP fields or all if no exchange)
     if (
+      !hideMeta &&
       entry.meta &&
       Object.keys(entry.meta as Record<string, unknown>).length > 0
     ) {
-      line += `  ${colorize(JSON.stringify(entry.meta), DIM)}`;
+      if (prettyMeta) {
+        const metaEntries = Object.entries(
+          entry.meta as Record<string, unknown>,
+        );
+        const parts = metaEntries.map(([key, value]) => {
+          const valStr =
+            typeof value === "string" ? value : JSON.stringify(value);
+          return `${colorize(`${key}:`, DIM)}${valStr}`;
+        });
+        line += `  ${parts.join(" ")}`;
+      } else {
+        const kvStr = Object.entries(entry.meta as Record<string, unknown>)
+          .map(
+            ([k, v]) => `${k}:${typeof v === "string" ? v : JSON.stringify(v)}`,
+          )
+          .join(" ");
+        line += `  ${colorize(kvStr, DIM)}`;
+      }
     }
 
     // Add error

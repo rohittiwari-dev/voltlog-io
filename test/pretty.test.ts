@@ -51,8 +51,38 @@ describe("Pretty Transport", () => {
     });
 
     const output = consoleSpy.mock.calls[0][0];
-    expect(output).toContain('{"userId":1}');
-    expect(output).toContain('{"foo":"bar"}');
+    expect(output).toContain("userId:1");
+    expect(output).toContain("foo:bar");
+  });
+
+  it("should hide meta if hideMeta is true", () => {
+    const transport = prettyTransport({ colors: false, hideMeta: true });
+    transport.write({
+      ...mockEntry,
+      context: { userId: 1 },
+      meta: { foo: "bar" },
+    });
+
+    const output = consoleSpy.mock.calls[0][0];
+    expect(output).toContain("userId:1");
+    expect(output).not.toContain("foo:bar");
+  });
+
+  it("should pretty-print meta if prettyMeta is true", () => {
+    const transport = prettyTransport({ colors: true, prettyMeta: true });
+    transport.write({
+      ...mockEntry,
+      meta: { foo: "bar", baz: 42 },
+    });
+
+    const output = consoleSpy.mock.calls[0][0];
+    // Should extract keys and values
+    expect(output).toContain("foo:");
+    expect(output).toContain("bar");
+    expect(output).toContain("baz:");
+    expect(output).toContain("42");
+    // Verify ANSI color code is applied to "foo:"
+    expect(output).toContain("\x1b[2mfoo:\x1b[0m");
   });
 
   it("should format error objects", () => {
