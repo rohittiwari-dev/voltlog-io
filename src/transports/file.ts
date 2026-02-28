@@ -1,6 +1,6 @@
 /**
  * @module voltlog-io
- * @description File transformer — writes logs to disk with daily rotation.
+ * @description File transformer — writes logs to disk with daily rotation and optional size-based rotation.
  * @server-only
  * This transport relies on the `node:fs` module to write files to the local filesystem.
  * Browsers do not have direct access to the filesystem for security reasons.
@@ -20,18 +20,39 @@ export interface FileTransportOptions {
   filename?: string;
   /** Per-transport level filter */
   level?: LogLevelName;
+  /**
+   * Maximum file size in bytes before rotating to a new file.
+   * When exceeded, the current file is renamed with a numeric suffix.
+   * Default: no size limit (daily rotation only).
+   */
+  maxSize?: number;
 }
 
 /**
  * Creates a file transport that writes newline-delimited JSON.
- * Rotates files daily based on the `%DATE%` pattern.
+ * Rotates files daily based on the `%DATE%` pattern and optionally by size.
  */
 export function fileTransport(options: FileTransportOptions): Transport {
-  const { dir, level } = options;
+  const { dir, level, maxSize } = options;
   const filenamePattern = options.filename ?? "app-%DATE%.log";
 
   let currentStream: fs.WriteStream | null = null;
   let currentPath = "";
+  let currentSize = 0;
+  let rotationIndex = 0;
+
+  // Date caching — avoid new Date() allocation on every write
+  let cachedDate = "";
+  let cacheExpiry = 0;
+
+  function getCachedDate(): string {
+    const now = Date.now();
+    if (now >= cacheExpiry) {
+      cachedDate = new Date(now).toISOString().split("T")[0] as string;
+      cacheExpiry = now + 1000; // recompute every second
+    }
+    return cachedDate;
+  }
 
   // Ensure directory exists synchronously on startup
   try {
@@ -40,27 +61,43 @@ export function fileTransport(options: FileTransportOptions): Transport {
     console.error(`[voltlog] Failed to create log directory: ${dir}`, err);
   }
 
-  function getPath(): string {
-    const now = new Date();
-    const dateStr = now.toISOString().split("T")[0]; // YYYY-MM-DD
+  function getPath(sizeRotation = false): string {
+    const dateStr = getCachedDate();
     const filename = filenamePattern.replace("%DATE%", dateStr);
+    if (sizeRotation && rotationIndex > 0) {
+      const ext = path.extname(filename);
+      const base = filename.slice(0, -ext.length || undefined);
+      return path.join(dir, `${base}.${rotationIndex}${ext}`);
+    }
     return path.join(dir, filename);
+  }
+
+  function openStream(filePath: string): void {
+    if (currentStream) {
+      currentStream.end();
+    }
+    currentPath = filePath;
+    currentSize = 0;
+    currentStream = fs.createWriteStream(filePath, { flags: "a" });
+
+    // Try to get existing file size for append mode
+    try {
+      const stat = fs.statSync(filePath);
+      currentSize = stat.size;
+    } catch {
+      // File doesn't exist yet — size stays 0
+    }
+
+    currentStream.on("error", (err) => {
+      console.error(`[voltlog] File write error to ${filePath}:`, err);
+    });
   }
 
   function rotate(): void {
     const newPath = getPath();
     if (newPath !== currentPath) {
-      if (currentStream) {
-        currentStream.end();
-      }
-      currentPath = newPath;
-      // 'a' flag for append
-      currentStream = fs.createWriteStream(newPath, { flags: "a" });
-
-      // Handle stream errors to prevent crashing the app
-      currentStream.on("error", (err) => {
-        console.error(`[voltlog] File write error to ${newPath}:`, err);
-      });
+      rotationIndex = 0;
+      openStream(newPath);
     }
   }
 
@@ -71,19 +108,24 @@ export function fileTransport(options: FileTransportOptions): Transport {
     name: "file",
     level,
     write(entry: LogEntry): void {
-      // Check rotation on every write (low overhead string comparison)
-      // For extremely high throughput, this could be optimized to check only every N writes or every few seconds
+      // Check date-based rotation (uses cached date — very cheap)
       rotate();
 
+      const line = `${JSON.stringify(entry)}\n`;
+
+      // Check size-based rotation
+      if (maxSize && currentSize + line.length > maxSize) {
+        rotationIndex++;
+        openStream(getPath(true));
+      }
+
       if (currentStream && !currentStream.writableEnded) {
-        const line = `${JSON.stringify(entry)}\n`;
         currentStream.write(line);
+        currentSize += line.length;
       }
     },
     async flush(): Promise<void> {
-      // Streams flush automatically on write usually, but we can try to ensure
-      // limited control over fs stream flushing in Node without callbacks
-      // No-op for standard fs streams as they handle backpressure internally
+      // No-op for standard fs streams — they handle backpressure internally
     },
     async close(): Promise<void> {
       if (currentStream) {

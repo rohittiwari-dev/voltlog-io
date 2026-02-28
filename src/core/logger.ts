@@ -33,17 +33,19 @@
  * ```
  */
 
-import { createId } from "@paralleldrive/cuid2";
+import { randomUUID } from "node:crypto";
 import { resolveLevel, shouldIncludeStack, shouldLog } from "./levels.js";
 import { composeMiddleware, fanOutToTransports } from "./pipeline.js";
-import type {
-  LogEntry,
-  LogError,
-  Logger,
-  LoggerOptions,
-  LogLevelName,
-  LogMiddleware,
-  Transport,
+import {
+  type LogEntry,
+  type LogError,
+  type Logger,
+  type LoggerOptions,
+  type LogLevelName,
+  type LogMiddleware,
+  LogLevelValueMap,
+  type TimerResult,
+  type Transport,
 } from "./types.js";
 
 // ─── Logger Implementation ──────────────────────────────────────
@@ -56,6 +58,7 @@ class LoggerImpl<TMeta = Record<string, unknown>> implements Logger<TMeta> {
   private _context: Record<string, unknown>;
   private _includeStack: boolean | LogLevelName;
   private _timestampFn: () => number;
+  private _idFn: (() => string) | false;
 
   constructor(options: LoggerOptions<TMeta> = {}) {
     this._level = resolveLevel(options.level ?? "INFO");
@@ -64,24 +67,30 @@ class LoggerImpl<TMeta = Record<string, unknown>> implements Logger<TMeta> {
     this._context = options.context ? { ...options.context } : {};
     this._includeStack = options.includeStack ?? "ERROR";
     this._timestampFn = options.timestamp ?? Date.now;
+    this._idFn =
+      options.idGenerator !== undefined ? options.idGenerator : randomUUID;
     this._pipeline = this._buildPipeline();
   }
 
   // ─── Log Methods ────────────────────────────────────────────
 
   trace(message: string, meta?: Partial<TMeta>): void {
+    if (10 < this._level) return; // fast-fail short-circuit
     this._log(10, "TRACE", message, meta);
   }
 
   debug(message: string, meta?: Partial<TMeta>): void {
+    if (20 < this._level) return;
     this._log(20, "DEBUG", message, meta);
   }
 
   info(message: string, meta?: Partial<TMeta>): void {
+    if (30 < this._level) return;
     this._log(30, "INFO", message, meta);
   }
 
   warn(message: string, meta?: Partial<TMeta>): void {
+    if (40 < this._level) return;
     this._log(40, "WARN", message, meta);
   }
 
@@ -90,6 +99,7 @@ class LoggerImpl<TMeta = Record<string, unknown>> implements Logger<TMeta> {
     metaOrError?: Partial<TMeta> | Error,
     error?: Error,
   ): void {
+    if (50 < this._level) return;
     if (metaOrError instanceof Error) {
       this._log(50, "ERROR", message, undefined, metaOrError);
     } else {
@@ -130,6 +140,47 @@ class LoggerImpl<TMeta = Record<string, unknown>> implements Logger<TMeta> {
     this._pipeline = this._buildPipeline();
   }
 
+  removeMiddleware(middleware: LogMiddleware<TMeta>): void {
+    this._middlewareList = this._middlewareList.filter((m) => m !== middleware);
+    this._pipeline = this._buildPipeline();
+  }
+
+  // ─── Level Control ─────────────────────────────────────────
+
+  setLevel(level: LogLevelName): void {
+    this._level = resolveLevel(level);
+  }
+
+  getLevel(): LogLevelName {
+    return (LogLevelValueMap[this._level] ?? "INFO") as LogLevelName;
+  }
+
+  isLevelEnabled(level: LogLevelName): boolean {
+    return resolveLevel(level) >= this._level;
+  }
+
+  // ─── Timer ─────────────────────────────────────────────────
+
+  startTimer(level?: LogLevelName): TimerResult<TMeta> {
+    const start = performance.now();
+    const logLevel = level ?? "INFO";
+    return {
+      done: (message: string, meta?: Partial<TMeta>) => {
+        const durationMs = Math.round(performance.now() - start);
+        const merged = { ...meta, durationMs } as unknown as Partial<TMeta>;
+        const methodKey = logLevel.toLowerCase() as
+          | "trace"
+          | "debug"
+          | "info"
+          | "warn"
+          | "error"
+          | "fatal";
+        this[methodKey](message, merged);
+      },
+      elapsed: () => Math.round(performance.now() - start),
+    };
+  }
+
   // ─── Lifecycle ──────────────────────────────────────────────
 
   async flush(): Promise<void> {
@@ -166,7 +217,7 @@ class LoggerImpl<TMeta = Record<string, unknown>> implements Logger<TMeta> {
     if (!shouldLog(level, this._level)) return;
 
     const entry: LogEntry<TMeta> = {
-      id: createId(),
+      id: this._idFn ? this._idFn() : "",
       level,
       levelName: levelName as LogLevelName,
       message,
@@ -176,15 +227,10 @@ class LoggerImpl<TMeta = Record<string, unknown>> implements Logger<TMeta> {
     };
 
     if (error) {
-      const logError: LogError = {
-        message: error.message,
-        name: error.name,
-        code: (error as NodeJS.ErrnoException).code,
-      };
-      if (shouldIncludeStack(level, this._includeStack)) {
-        logError.stack = error.stack;
-      }
-      entry.error = logError;
+      entry.error = serializeError(
+        error,
+        shouldIncludeStack(level, this._includeStack),
+      );
     }
 
     this._pipeline(entry);
@@ -195,6 +241,29 @@ class LoggerImpl<TMeta = Record<string, unknown>> implements Logger<TMeta> {
       fanOutToTransports(entry, this._transports, this._level);
     });
   }
+}
+
+// ─── Error Serialization ─────────────────────────────────────────
+
+/** Recursively serialize an Error including the ES2022 cause chain */
+function serializeError(
+  error: Error,
+  includeStack: boolean,
+  depth = 0,
+): LogError {
+  const logError: LogError = {
+    message: error.message,
+    name: error.name,
+    code: (error as NodeJS.ErrnoException).code,
+  };
+  if (includeStack) {
+    logError.stack = error.stack;
+  }
+  // Recursively serialize cause chain (cap depth at 5 to prevent infinite loops)
+  if (error.cause instanceof Error && depth < 5) {
+    logError.cause = serializeError(error.cause, includeStack, depth + 1);
+  }
+  return logError;
 }
 
 // ─── Child Logger ────────────────────────────────────────────────
@@ -285,6 +354,21 @@ class ChildLoggerImpl<TMeta = Record<string, unknown>>
   }
   addMiddleware(middleware: LogMiddleware<TMeta>): void {
     this._parent.addMiddleware(middleware);
+  }
+  removeMiddleware(middleware: LogMiddleware<TMeta>): void {
+    this._parent.removeMiddleware(middleware);
+  }
+  setLevel(level: LogLevelName): void {
+    this._parent.setLevel(level);
+  }
+  getLevel(): LogLevelName {
+    return this._parent.getLevel();
+  }
+  isLevelEnabled(level: LogLevelName): boolean {
+    return this._parent.isLevelEnabled(level);
+  }
+  startTimer(level?: LogLevelName): TimerResult<TMeta> {
+    return this._parent.startTimer(level);
   }
   flush(): Promise<void> {
     return this._parent.flush();

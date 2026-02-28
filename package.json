@@ -60,9 +60,7 @@
   "files": [
     "dist"
   ],
-  "dependencies": {
-    "@paralleldrive/cuid2": "^3.3.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@biomejs/biome": "^2.4.4",
     "@changesets/cli": "^2.29.8",

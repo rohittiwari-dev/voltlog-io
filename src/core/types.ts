@@ -36,7 +36,7 @@ export const LogLevelValueMap: Record<number, LogLevelName> =
 // ─── Log Entry ───────────────────────────────────────────────────
 
 export interface LogEntry<TMeta = Record<string, unknown>> {
-  /** Unique log ID (cuid2) */
+  /** Unique log ID */
   id: string;
   /** Numeric log level */
   level: number;
@@ -54,6 +54,8 @@ export interface LogEntry<TMeta = Record<string, unknown>> {
   correlationId?: string;
   /** Error information */
   error?: LogError;
+  /** @internal Cached JSON serialization — avoids redundant stringify across transports */
+  _json?: string;
 }
 
 export interface LogError {
@@ -61,6 +63,8 @@ export interface LogError {
   stack?: string;
   code?: string;
   name?: string;
+  /** Nested cause chain (ES2022 Error.cause support) */
+  cause?: LogError;
 }
 
 // ─── OCPP Exchange Meta ──────────────────────────────────────────
@@ -142,6 +146,15 @@ export interface AlertRule<TMeta = Record<string, unknown>> {
   onAlert: (entries: LogEntry<TMeta>[]) => void | Promise<void>;
 }
 
+// ─── Timer Result ────────────────────────────────────────────────
+
+export interface TimerResult<TMeta = Record<string, unknown>> {
+  /** End the timer and log the duration */
+  done(message: string, meta?: Partial<TMeta>): void;
+  /** Get elapsed time in ms without logging */
+  elapsed(): number;
+}
+
 // ─── Logger Options ──────────────────────────────────────────────
 
 export interface LoggerOptions<TMeta = Record<string, unknown>> {
@@ -174,6 +187,12 @@ export interface LoggerOptions<TMeta = Record<string, unknown>> {
   exchangeLog?: boolean | "only";
   /** Custom timestamp function (default: Date.now) */
   timestamp?: () => number;
+  /**
+   * Custom ID generator function.
+   * Default: `crypto.randomUUID()` (native, fast).
+   * Set to `false` to disable ID generation entirely for max performance.
+   */
+  idGenerator?: (() => string) | false;
 }
 
 // ─── Logger Interface ────────────────────────────────────────────
@@ -203,6 +222,18 @@ export interface Logger<TMeta = Record<string, unknown>> {
   removeTransport(name: string): void;
   /** Add middleware at runtime */
   addMiddleware(middleware: LogMiddleware<TMeta>): void;
+  /** Remove middleware by reference */
+  removeMiddleware(middleware: LogMiddleware<TMeta>): void;
+
+  /** Change the minimum log level at runtime */
+  setLevel(level: LogLevelName): void;
+  /** Get the current minimum log level */
+  getLevel(): LogLevelName;
+  /** Check if a given level would produce output (useful to guard expensive meta computation) */
+  isLevelEnabled(level: LogLevelName): boolean;
+
+  /** Start a timer — call `.done(msg)` to log elapsed duration */
+  startTimer(level?: LogLevelName): TimerResult<TMeta>;
 
   /** Flush all transports */
   flush(): Promise<void>;

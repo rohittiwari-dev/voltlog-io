@@ -24,6 +24,7 @@ export {
   LogLevelValueMap,
   type LogMiddleware,
   type OcppExchangeMeta,
+  type TimerResult,
   type Transport,
 } from "./core/types.js";
 export {
@@ -110,6 +111,12 @@ export {
   type RedisTransportOptions,
   redisTransport,
 } from "./transports/redis.js";
+export {
+  type RingBufferQueryOptions,
+  type RingBufferTransport,
+  type RingBufferTransportOptions,
+  ringBufferTransport,
+} from "./transports/ring-buffer.js";
 export {
   type SentryInstance,
   type SentryTransportOptions,

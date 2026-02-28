@@ -5,7 +5,7 @@
  * Useful for tracking requests across microservices.
  */
 
-import { createId } from "@paralleldrive/cuid2";
+import { randomUUID } from "node:crypto";
 import type { LogMiddleware } from "../core/types.js";
 
 export interface CorrelationIdOptions {
@@ -35,7 +35,7 @@ export function correlationIdMiddleware<TMeta = Record<string, unknown>>(
   options: CorrelationIdOptions = {},
 ): LogMiddleware<TMeta> {
   const header = options.header ?? "x-correlation-id";
-  const generate = options.generator ?? createId;
+  const generate = options.generator ?? randomUUID;
 
   return (entry, next) => {
     // 1. Check direct property
