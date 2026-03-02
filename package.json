@@ -1,6 +1,6 @@
 {
   "name": "voltlog-io",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Structured logger for real-time infrastructure — lightweight, type-safe, OCPP-aware. Works standalone or with ocpp-ws-io.",
   "repository": {
     "type": "git",

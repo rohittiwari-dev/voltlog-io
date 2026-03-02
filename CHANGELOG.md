@@ -1,5 +1,11 @@
 # voltlog-io
 
+## 1.0.6
+
+### Patch Changes
+
+- fix: `voltlog-io/client` browser bundle no longer contains Node.js ESM shims (`fileURLToPath`, `__filename`) in v1.0.6. Root cause was `splitting: true` on the client tsup config — with both builds sharing the same `outDir`, the chunk splitter could reference the shim chunk emitted by the `index` (Node.js) build. Setting `splitting: false` on the client entry forces a self-contained bundle with no shared chunks, so the `esm_shims` injection never occurs.
+
 ## 1.0.5
 
 ### Patch Changes

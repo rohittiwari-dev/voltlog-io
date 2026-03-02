@@ -13,12 +13,14 @@ export default defineConfig([
     target: "node18",
     shims: true,
   },
-  // Browser-safe entry — no Node.js shims, no platform-specific built-ins
+  // Browser-safe entry — no Node.js shims, no platform-specific built-ins.
+  // splitting MUST be false so tsup never creates a shared chunk that could
+  // pull in the esm_shims (fileURLToPath / __filename) from the index build.
   {
     entry: { client: "src/client.ts" },
     format: ["cjs", "esm"],
     dts: true,
-    splitting: true,
+    splitting: false,
     sourcemap: false,
     outDir: "dist",
     platform: "browser",
