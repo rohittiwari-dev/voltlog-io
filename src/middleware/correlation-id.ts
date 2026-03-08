@@ -5,8 +5,10 @@
  * Useful for tracking requests across microservices.
  */
 
-import { randomUUID } from "node:crypto";
 import type { LogMiddleware } from "../core/types.js";
+
+// Use Web Crypto API — available in Node 18+, browsers, Bun, and Deno. No import needed.
+const _randomUUID = (): string => globalThis.crypto.randomUUID();
 
 export interface CorrelationIdOptions {
   /**
@@ -35,7 +37,7 @@ export function correlationIdMiddleware<TMeta = Record<string, unknown>>(
   options: CorrelationIdOptions = {},
 ): LogMiddleware<TMeta> {
   const header = options.header ?? "x-correlation-id";
-  const generate = options.generator ?? randomUUID;
+  const generate = options.generator ?? _randomUUID;
 
   return (entry, next) => {
     // 1. Check direct property

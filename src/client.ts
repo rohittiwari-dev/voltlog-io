@@ -1,19 +1,21 @@
 /**
  * @module voltlog-io/client
  *
- * Browser-safe entry point — excludes Node.js-only transports and middleware.
+ * Browser-safe entry point — only includes APIs that work in all environments
+ * (browsers, React, Next.js client components, edge runtimes, etc.).
  *
- * Use this import in client-side code (React, Next.js client components, etc.):
+ * Use this import in client-side code:
  * ```ts
  * import { createLogger, consoleTransport } from 'voltlog-io/client';
  * ```
  *
- * Excluded (Node.js-only):
- * - fileTransport          (node:fs, node:path)
- * - jsonStreamTransport    (NodeJS.WritableStream)
- * - asyncContextMiddleware (node:async_hooks)
- * - correlationIdMiddleware(node:crypto)
- * - redisTransport         (server-only Redis client)
+ * Excluded (Node.js-only — use main `voltlog-io` entry on the server):
+ * - fileTransport          → node:fs, node:path
+ * - jsonStreamTransport    → NodeJS.WritableStream
+ * - asyncContextMiddleware → node:async_hooks
+ * - correlationIdMiddleware→ uses globalThis.crypto (safe), but conceptually request-scoped / server middleware
+ * - redisTransport         → TCP socket Redis (ioredis)
+ * - nodeHttpMappers        → Node.js IncomingMessage / ServerResponse concepts
  */
 
 // ─── Level Utilities ─────────────────────────────────────────────
@@ -37,6 +39,7 @@ export {
   type TimerResult,
   type Transport,
 } from "./core/types.js";
+
 // ─── Middleware (browser-safe) ───────────────────────────────────
 export {
   type AiEnrichmentOptions,
@@ -49,13 +52,14 @@ export {
   type DeduplicationOptions,
   deduplicationMiddleware,
 } from "./middleware/deduplication.js";
+// heapUsageMiddleware is guarded with `typeof process !== undefined` — safe in browsers (no-op)
 export { heapUsageMiddleware } from "./middleware/heap-usage.js";
+// createHttpLogger is framework-agnostic (no Node imports). nodeHttpMappers is excluded (Node-specific).
 export {
   createHttpLogger,
   type HttpLoggerOptions,
   type HttpRequestMapper,
   type HttpResponseMapper,
-  nodeHttpMappers,
 } from "./middleware/http.js";
 export { ipMiddleware } from "./middleware/ip.js";
 export {
@@ -66,6 +70,7 @@ export {
   type OcppMiddlewareOptions,
   ocppMiddleware,
 } from "./middleware/ocpp.js";
+// otelTraceMiddleware now uses dynamic import() — browser-safe
 export {
   type OtelTraceMiddlewareOptions,
   otelTraceMiddleware,
@@ -82,6 +87,7 @@ export {
   type UserAgentOptions,
   userAgentMiddleware,
 } from "./middleware/user-agent.js";
+
 // ─── Transports (browser-safe) ──────────────────────────────────
 export {
   type BatchTransportOptions,

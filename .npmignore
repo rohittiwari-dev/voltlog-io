@@ -6,3 +6,4 @@ vitest.config.ts
 .gitignore
 .github
 coverage
+dist/**/*.map

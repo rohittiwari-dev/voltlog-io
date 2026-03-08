@@ -61,21 +61,30 @@ export function otelTraceMiddleware<TMeta = Record<string, unknown>>(
   let traceApi: any = options.traceApi ?? null;
   let resolved = !!traceApi;
 
-  if (!resolved) {
-    try {
-      // Use createRequire to prevent tsup from bundling the optional dep
-      // Same pattern as ocpp-ws-io otel plugin
-      const { createRequire } = require("node:module");
-      const dynamicRequire = createRequire(__filename);
-      const api = dynamicRequire("@opentelemetry/api");
-      traceApi = api;
-      resolved = true;
-    } catch {
-      // @opentelemetry/api not installed — middleware becomes a no-op
-    }
+  // Lazy-resolve @opentelemetry/api on first log call (async, non-blocking).
+  // Using dynamic import() — works in Node 18+, Bun, Deno, and modern browsers.
+  // No hard dependency; if the package isn't installed this is a silent no-op.
+  let resolvePromise: Promise<void> | null = null;
+
+  function ensureResolved(): Promise<void> {
+    if (resolved || resolvePromise) return resolvePromise ?? Promise.resolve();
+    // @ts-expect-error — @opentelemetry/api is an optional peer dep; TS error is expected when not installed.
+    resolvePromise = import("@opentelemetry/api")
+      .then((api: any) => {
+        traceApi = api;
+        resolved = true;
+      })
+      .catch(() => {
+        // @opentelemetry/api not installed — middleware becomes a no-op
+        resolved = true; // mark resolved to stop retrying
+      });
+    return resolvePromise;
   }
 
   return (entry, next) => {
+    // Kick off lazy resolution on first use (subsequent calls are no-ops)
+    ensureResolved().catch(() => {});
+
     if (resolved && traceApi?.trace) {
       try {
         const activeSpan = traceApi.trace.getActiveSpan?.();

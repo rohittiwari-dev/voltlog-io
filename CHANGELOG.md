@@ -1,5 +1,25 @@
 # voltlog-io
 
+## 1.0.7
+
+### Patch Changes
+
+- fix: strict client/server bundle separation — `voltlog-io/client` now contains zero Node.js built-in references; `voltlog-io` no longer exports browser-only APIs.
+
+  **Root cause fixes:**
+
+  - `otelTraceMiddleware`: replaced `require("node:module")` + `__filename` with lazy `import()` — browser-safe, eliminates the ESM shim injection that caused the v1.0.6 size regression
+  - `correlationIdMiddleware`: replaced `import { randomUUID } from "node:crypto"` with `globalThis.crypto.randomUUID()` — works natively in Node 18+, browsers, Bun, and Deno
+
+  **Bundle changes:**
+
+  - `nodeHttpMappers` removed from `voltlog-io/client` (Node.js `IncomingMessage`/`ServerResponse` concept); `createHttpLogger` stays in both (framework-agnostic)
+  - `browserJsonStreamTransport` removed from `voltlog-io` server entry (browser WHATWG Streams API)
+  - Client build now uses isolated `outDir: "dist/browser/"` allowing `splitting: true` to be safely restored — shared code is deduplicated again
+  - Source maps excluded from published tarball (`!dist/**/*.map`) — generated locally for debugging, not shipped to consumers
+
+  **Size:** published unpacked size drops from 724 KB (v1.0.6) → ~408 KB (−44%)
+
 ## 1.0.6
 
 ### Patch Changes

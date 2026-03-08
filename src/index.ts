@@ -87,10 +87,6 @@ export {
   type BatchTransportOptions,
   batchTransport,
 } from "./transports/batch.js";
-export {
-  type BrowserJsonStreamTransportOptions,
-  browserJsonStreamTransport,
-} from "./transports/browser-json-stream.js";
 // ─── Transports ────────────────────────────────────────────────
 export {
   type ConsoleTransportOptions,
