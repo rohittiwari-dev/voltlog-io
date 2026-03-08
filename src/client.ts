@@ -13,9 +13,11 @@
  * - fileTransport          → node:fs, node:path
  * - jsonStreamTransport    → NodeJS.WritableStream
  * - asyncContextMiddleware → node:async_hooks
- * - correlationIdMiddleware→ uses globalThis.crypto (safe), but conceptually request-scoped / server middleware
+ * - correlationIdMiddleware→ request-scoped / server middleware
  * - redisTransport         → TCP socket Redis (ioredis)
  * - nodeHttpMappers        → Node.js IncomingMessage / ServerResponse concepts
+ * - otelTraceMiddleware    → requires @opentelemetry/api (optional peer dep); OTel spans
+ *                            only exist in server contexts — never in a browser
  */
 
 // ─── Level Utilities ─────────────────────────────────────────────
@@ -70,11 +72,6 @@ export {
   type OcppMiddlewareOptions,
   ocppMiddleware,
 } from "./middleware/ocpp.js";
-// otelTraceMiddleware now uses dynamic import() — browser-safe
-export {
-  type OtelTraceMiddlewareOptions,
-  otelTraceMiddleware,
-} from "./middleware/otel-trace.js";
 export {
   type RedactionOptions,
   redactionMiddleware,
